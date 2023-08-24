@@ -231,7 +231,60 @@ app.post('/image', async (req, res) => {
     res.status(500).json({ error: 'An error occurred.' });
   }
 });
+
+
+app.post('/vnhub', async (req, res) => {
+  const { message } = req.body;
+
+  const postData = JSON.stringify({
+    model: 'gpt-3.5-turbo',
+    messages: [{
+      role: 'user',
+      content: message
+    }],
+    max_tokens: 200
+  });
+
   
+  try {
+    const req = https.request(options, async (response) => {
+      let data = '';
+      response.on('data', (chunk) => {
+        data += chunk;
+      });
+      console.log(data);
+
+      response.on('end', () => {
+        if (response.headers['content-type'].startsWith('application/json')) {
+          try {
+            const responseJSON = JSON.parse(data);
+            const answer = responseJSON.choices[0].message.content;
+            res.json({ answer });
+          } catch (jsonError) {
+            console.error('Error parsing JSON response:', jsonError);
+            res.status(500).json({ error: 'An error occurred while processing the response.' });
+          }
+        } else {
+          // Handle HTML response
+          console.log('HTML response:', data);
+          res.status(500).json({ error: 'Received unexpected HTML response.' });
+        }
+      });
+    });
+
+    req.on('error', (error) => {
+      console.error('An error occurred:', error);
+      res.status(500).json({ error: 'An error occurred while processing the request.' });
+    });
+
+    req.write(postData);
+    req.end();
+  } catch (error) {
+    console.error('An error occurred:', error);
+    res.status(500).json({ error: 'An error occurred while processing the request.' });
+  }
+});
+
 
 
   
